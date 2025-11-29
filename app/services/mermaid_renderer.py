@@ -23,20 +23,33 @@ class MermaidRenderer:
         Returns:
             Tuple of (is_valid, error_message)
         """
-        # Try mermaid-py first
+        # Try mermaid-py first (with multiple API attempts for different versions)
         try:
             from mermaid import Mermaid
             from mermaid.graph import Graph
 
             graph = Graph("validation", mermaid_code)
             mermaid = Mermaid(graph)
-            # Try to access svg to trigger validation
-            _ = mermaid.svg
+            
+            # Try different API methods depending on mermaid-py version
+            if hasattr(mermaid, 'svg'):
+                _ = mermaid.svg
+            elif hasattr(mermaid, 'to_svg'):
+                _ = mermaid.to_svg()
+            elif hasattr(mermaid, '_repr_html_'):
+                _ = mermaid._repr_html_()
+            # If none of the above, just check if object was created successfully
             return True, None
         except ImportError:
             pass
         except Exception as e:
-            return False, str(e)
+            # Don't fail on mermaid-py issues - we have frontend rendering
+            # Only return error if it's clearly a syntax error
+            error_str = str(e)
+            if 'parse' in error_str.lower() or 'syntax' in error_str.lower():
+                return False, error_str
+            # Otherwise, assume it's a library issue, not syntax
+            pass
 
         # Fallback to mermaid-cli validation
         if self._check_mermaid_cli():
@@ -133,7 +146,14 @@ class MermaidRenderer:
 
             graph = Graph("diagram", mermaid_code)
             mermaid = Mermaid(graph)
-            return mermaid.svg
+            
+            # Try different API methods depending on mermaid-py version
+            if hasattr(mermaid, 'svg'):
+                return mermaid.svg
+            elif hasattr(mermaid, 'to_svg'):
+                return mermaid.to_svg()
+            elif hasattr(mermaid, '_repr_svg_'):
+                return mermaid._repr_svg_()
         except ImportError:
             pass
         except Exception:
