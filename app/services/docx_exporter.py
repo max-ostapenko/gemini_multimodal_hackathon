@@ -1,10 +1,67 @@
 """DOCX document export service - generates Word docs on demand."""
 
 import io
+import base64
+import tempfile
 from datetime import datetime
+from pathlib import Path
 
 
-def generate_docx(guide_dict: dict, diagram_dict: dict) -> bytes:
+def _add_diagram_image(doc, diagram_svg: str, mermaid_code: str) -> bool:
+    """
+    Try to add the diagram as an image to the document.
+    
+    Returns True if successful, False otherwise.
+    """
+    from docx.shared import Inches
+    
+    # Method 1: Try to convert SVG to PNG using cairosvg
+    try:
+        import cairosvg
+        png_bytes = cairosvg.svg2png(bytestring=diagram_svg.encode('utf-8'))
+        
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
+            tmp.write(png_bytes)
+            tmp_path = tmp.name
+        
+        doc.add_picture(tmp_path, width=Inches(6))
+        Path(tmp_path).unlink(missing_ok=True)
+        return True
+    except ImportError:
+        pass
+    except Exception:
+        pass
+    
+    # Method 2: Try using mermaid-cli if available
+    try:
+        import subprocess
+        with tempfile.TemporaryDirectory() as tmpdir:
+            mmd_file = Path(tmpdir) / "diagram.mmd"
+            png_file = Path(tmpdir) / "diagram.png"
+            
+            mmd_file.write_text(mermaid_code)
+            
+            result = subprocess.run(
+                ["mmdc", "-i", str(mmd_file), "-o", str(png_file), "-b", "white"],
+                capture_output=True,
+                timeout=30,
+            )
+            
+            if result.returncode == 0 and png_file.exists():
+                doc.add_picture(str(png_file), width=Inches(6))
+                return True
+    except Exception:
+        pass
+    
+    # Method 3: If SVG is provided, save it and note that it's available
+    if diagram_svg:
+        doc.add_paragraph("(Diagram rendered in HTML output - see exported HTML file)")
+        return False
+    
+    return False
+
+
+def generate_docx(guide_dict: dict, diagram_dict: dict, diagram_svg: str = None) -> bytes:
     """
     Generate a DOCX file from guide and diagram data.
     
@@ -87,11 +144,21 @@ def generate_docx(guide_dict: dict, diagram_dict: dict) -> bytes:
     doc.add_paragraph(f"Type: {diagram_dict.get('diagram_type', 'flowchart')}")
     doc.add_paragraph(diagram_dict.get('description', ''))
     
-    doc.add_paragraph("Mermaid Code:")
-    code_para = doc.add_paragraph()
-    code_run = code_para.add_run(diagram_dict.get('mermaid_code', ''))
-    code_run.font.name = 'Consolas'
-    code_run.font.size = Pt(9)
+    # Try to add diagram image
+    diagram_added = False
+    if diagram_svg:
+        try:
+            diagram_added = _add_diagram_image(doc, diagram_svg, diagram_dict.get('mermaid_code', ''))
+        except Exception as e:
+            print(f"Could not add diagram image: {e}")
+    
+    if not diagram_added:
+        # Fallback: add mermaid code
+        doc.add_paragraph("Mermaid Code (paste into mermaid.live to view):")
+        code_para = doc.add_paragraph()
+        code_run = code_para.add_run(diagram_dict.get('mermaid_code', ''))
+        code_run.font.name = 'Consolas'
+        code_run.font.size = Pt(9)
     
     # Technologies
     technologies = guide_dict.get('technologies', [])

@@ -733,7 +733,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         guide: currentResult.technical_guide,
-                        diagram: currentResult.mermaid_diagram
+                        diagram: currentResult.mermaid_diagram,
+                        diagram_svg: currentResult.diagram_svg  // Include SVG for image embedding
                     })
                 });
                 

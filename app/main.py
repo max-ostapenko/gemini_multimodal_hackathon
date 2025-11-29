@@ -249,9 +249,10 @@ async def export_to_docx(data: dict):
         
         guide = data.get('guide', {})
         diagram = data.get('diagram', {})
+        diagram_svg = data.get('diagram_svg')  # Optional SVG for image embedding
         
         # Generate DOCX bytes
-        docx_bytes = generate_docx(guide, diagram)
+        docx_bytes = generate_docx(guide, diagram, diagram_svg)
         
         # Return as downloadable file
         filename = f"DevOpsy-{guide.get('title', 'Documentation')[:30]}.docx"
