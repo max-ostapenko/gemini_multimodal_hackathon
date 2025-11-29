@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes to One-Pager | AI Technical Documentation Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --secondary: #64748b;
+            --success: #10b981;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: var(--text-light);
+            font-size: 1.125rem;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .card h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card h2 span {
+            font-size: 1.5rem;
+        }
+
+        /* Upload Area */
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 1rem;
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: var(--primary);
+            background: #eff6ff;
+        }
+
+        .upload-area.has-image {
+            border-style: solid;
+            border-color: var(--success);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-text {
+            color: var(--text-light);
+        }
+
+        .upload-text strong {
+            color: var(--primary);
+        }
+
+        #imagePreview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            display: none;
+            margin-top: 1rem;
+        }
+
+        #imagePreview.visible {
+            display: block;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+        }
+
+        textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 120px;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.875rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-hover);
+        }
+
+        .btn-primary:disabled {
+            background: var(--secondary);
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--card-bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg);
+        }
+
+        /* Loading State */
+        .loading {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1rem;
+            color: var(--text-light);
+        }
+
+        .loading.visible {
+            display: flex;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Progress Steps */
+        .progress-steps {
+            display: none;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--bg);
+            border-radius: 8px;
+        }
+
+        .progress-steps.visible {
+            display: flex;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-light);
+        }
+
+        .step.active {
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .step.complete {
+            color: var(--success);
+        }
+
+        .step-icon {
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Results Area */
+        .results-area {
+            display: none;
+        }
+
+        .results-area.visible {
+            display: block;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        .tab {
+            padding: 0.5rem 1rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-light);
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            background: var(--bg);
+        }
+
+        .tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Preview iframe */
+        .preview-frame {
+            width: 100%;
+            height: 600px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: white;
+        }
+
+        /* JSON Display */
+        .json-display {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.875rem;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        /* Mermaid Display */
+        .mermaid-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .mermaid-code {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.875rem;
+            text-align: left;
+            margin-top: 1rem;
+            overflow-x: auto;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .action-buttons .btn {
+            width: auto;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        /* Error State */
+        .error-message {
+            display: none;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .error-message.visible {
+            display: block;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-light);
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📝 Notes to One-Pager</h1>
+            <p>Transform your napkin sketches and whiteboard diagrams into professional technical documentation</p>
+        </header>
+
+        <div class="main-grid">
+            <!-- Input Section -->
+            <div class="card">
+                <h2><span>📸</span> Input</h2>
+
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">🖼️</div>
+                    <div class="upload-text">
+                        <strong>Click to upload</strong> or drag and drop<br>
+                        <small>PNG, JPG, GIF up to 10MB</small>
+                    </div>
+                    <input type="file" id="imageInput" accept="image/*" hidden>
+                    <img id="imagePreview" alt="Preview">
+                </div>
+
+                <div class="form-group">
+                    <label for="promptInput">Describe your notes / Add context</label>
+                    <textarea
+                        id="promptInput"
+                        placeholder="E.g., 'This is a system architecture diagram for a real-time chat application. The main components are...'"></textarea>
+                </div>
+
+                <button class="btn btn-primary" id="generateBtn">
+                    <span>✨</span> Generate One-Pager
+                </button>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <span>Generating...</span>
+                </div>
+
+                <div class="progress-steps" id="progressSteps">
+                    <div class="step" id="step1">
+                        <span class="step-icon">○</span>
+                        <span>Analyzing image & generating guide...</span>
+                    </div>
+                    <div class="step" id="step2">
+                        <span class="step-icon">○</span>
+                        <span>Creating Mermaid diagram...</span>
+                    </div>
+                    <div class="step" id="step3">
+                        <span class="step-icon">○</span>
+                        <span>Building HTML one-pager...</span>
+                    </div>
+                </div>
+
+                <div class="error-message" id="errorMessage"></div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="card">
+                <h2><span>📄</span> Output</h2>
+
+                <div id="placeholder" style="text-align: center; padding: 3rem; color: var(--text-light);">
+                    <div style="font-size: 4rem; margin-bottom: 1rem;">🎨</div>
+                    <p>Upload an image and add context to generate<br>your technical one-pager</p>
+                </div>
+
+                <div class="results-area" id="resultsArea">
+                    <div class="tabs">
+                        <button class="tab active" data-tab="preview">Preview</button>
+                        <button class="tab" data-tab="guide">Guide JSON</button>
+                        <button class="tab" data-tab="diagram">Mermaid</button>
+                        <button class="tab" data-tab="html">HTML Code</button>
+                    </div>
+
+                    <div class="tab-content active" id="tab-preview">
+                        <iframe id="previewFrame" class="preview-frame"></iframe>
+                        <div class="action-buttons">
+                            <button class="btn btn-secondary" id="openNewTab">
+                                <span>🔗</span> Open in New Tab
+                            </button>
+                            <button class="btn btn-secondary" id="downloadHtml">
+                                <span>💾</span> Download HTML
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-guide">
+                        <pre class="json-display" id="guideJson"></pre>
+                    </div>
+
+                    <div class="tab-content" id="tab-diagram">
+                        <div class="mermaid-container">
+                            <div id="mermaidPreview"></div>
+                        </div>
+                        <pre class="mermaid-code" id="mermaidCode"></pre>
+                        <div class="action-buttons">
+                            <button class="btn btn-secondary" id="copyMermaid">
+                                <span>📋</span> Copy Mermaid Code
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-html">
+                        <pre class="json-display" id="htmlCode"></pre>
+                        <div class="action-buttons">
+                            <button class="btn btn-secondary" id="copyHtml">
+                                <span>📋</span> Copy HTML
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Built with ❤️ using Google Gemini 2.0 Flash | Multimodal Agent Hack Berlin 2025</p>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        // Initialize Mermaid
+        mermaid.initialize({ startOnLoad: false, theme: 'default' });
+
+        // DOM Elements
+        const uploadArea = document.getElementById('uploadArea');
+        const imageInput = document.getElementById('imageInput');
+        const imagePreview = document.getElementById('imagePreview');
+        const promptInput = document.getElementById('promptInput');
+        const generateBtn = document.getElementById('generateBtn');
+        const loading = document.getElementById('loading');
+        const progressSteps = document.getElementById('progressSteps');
+        const errorMessage = document.getElementById('errorMessage');
+        const placeholder = document.getElementById('placeholder');
+        const resultsArea = document.getElementById('resultsArea');
+
+        let currentResult = null;
+
+        // File Upload Handling
+        uploadArea.addEventListener('click', () => imageInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                handleImageFile(file);
+            }
+        });
+
+        imageInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                handleImageFile(file);
+            }
+        });
+
+        function handleImageFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imagePreview.src = e.target.result;
+                imagePreview.classList.add('visible');
+                uploadArea.classList.add('has-image');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Tab Navigation
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+            });
+        });
+
+        // Generate Button
+        generateBtn.addEventListener('click', async () => {
+            const prompt = promptInput.value.trim();
+            if (!prompt) {
+                showError('Please enter a description or context for your notes.');
+                return;
+            }
+
+            // Reset UI
+            hideError();
+            generateBtn.disabled = true;
+            loading.classList.add('visible');
+            progressSteps.classList.add('visible');
+            resetSteps();
+
+            try {
+                // Update step 1
+                updateStep(1, 'active');
+
+                // Create form data
+                const formData = new FormData();
+                formData.append('prompt', prompt);
+
+                if (imageInput.files[0]) {
+                    formData.append('image', imageInput.files[0]);
+                }
+
+                // Make API request
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Generation failed');
+                }
+
+                updateStep(1, 'complete');
+                updateStep(2, 'active');
+
+                const result = await response.json();
+                currentResult = result;
+
+                updateStep(2, 'complete');
+                updateStep(3, 'active');
+
+                // Display results
+                displayResults(result);
+
+                updateStep(3, 'complete');
+
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                generateBtn.disabled = false;
+                loading.classList.remove('visible');
+            }
+        });
+
+        function updateStep(stepNum, state) {
+            const step = document.getElementById(`step${stepNum}`);
+            const icon = step.querySelector('.step-icon');
+
+            step.className = `step ${state}`;
+
+            if (state === 'complete') {
+                icon.textContent = '✓';
+            } else if (state === 'active') {
+                icon.textContent = '●';
+            } else {
+                icon.textContent = '○';
+            }
+        }
+
+        function resetSteps() {
+            [1, 2, 3].forEach(n => updateStep(n, ''));
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('visible');
+        }
+
+        function hideError() {
+            errorMessage.classList.remove('visible');
+        }
+
+        function displayResults(result) {
+            placeholder.style.display = 'none';
+            resultsArea.classList.add('visible');
+
+            // Preview iframe
+            const previewFrame = document.getElementById('previewFrame');
+            previewFrame.srcdoc = result.html_output;
+
+            // Guide JSON
+            document.getElementById('guideJson').textContent =
+                JSON.stringify(result.technical_guide, null, 2);
+
+            // Mermaid diagram
+            const mermaidCode = result.mermaid_diagram.mermaid_code;
+            document.getElementById('mermaidCode').textContent = mermaidCode;
+
+            // Render Mermaid
+            const mermaidPreview = document.getElementById('mermaidPreview');
+            mermaidPreview.innerHTML = '';
+            mermaid.render('mermaid-svg', mermaidCode).then(({ svg }) => {
+                mermaidPreview.innerHTML = svg;
+            }).catch(err => {
+                mermaidPreview.innerHTML = `<p style="color: #dc2626;">Failed to render diagram: ${err.message}</p>`;
+            });
+
+            // HTML code
+            document.getElementById('htmlCode').textContent = result.html_output;
+        }
+
+        // Action Buttons
+        document.getElementById('openNewTab').addEventListener('click', () => {
+            if (currentResult) {
+                const blob = new Blob([currentResult.html_output], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                window.open(url, '_blank');
+            }
+        });
+
+        document.getElementById('downloadHtml').addEventListener('click', () => {
+            if (currentResult) {
+                const blob = new Blob([currentResult.html_output], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'one-pager.html';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        });
+
+        document.getElementById('copyMermaid').addEventListener('click', () => {
+            if (currentResult) {
+                navigator.clipboard.writeText(currentResult.mermaid_diagram.mermaid_code);
+                alert('Mermaid code copied to clipboard!');
+            }
+        });
+
+        document.getElementById('copyHtml').addEventListener('click', () => {
+            if (currentResult) {
+                navigator.clipboard.writeText(currentResult.html_output);
+                alert('HTML copied to clipboard!');
+            }
+        });
+    </script>
+</body>
+</html>

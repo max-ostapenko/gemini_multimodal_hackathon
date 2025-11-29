@@ -2,12 +2,14 @@
 
 import base64
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Optional
 
 import uvicorn
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
 from app.models.schemas import (
@@ -68,6 +70,14 @@ app.add_middleware(
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "service": "technical-notes-to-onepager"}
+
+
+@app.get("/")
+async def root():
+    """Serve the web UI."""
+    static_dir = Path(__file__).parent / "static"
+    index_file = static_dir / "index.html"
+    return HTMLResponse(content=index_file.read_text())
 
 
 @app.post("/generate", response_model=GenerationResponse)
