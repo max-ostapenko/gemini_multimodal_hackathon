@@ -475,8 +475,8 @@
                             <button class="btn btn-secondary" id="downloadHtml">
                                 <span>💾</span> Download HTML
                             </button>
-                            <button class="btn btn-secondary" id="downloadDocx" disabled title="Coming Soon!">
-                                <span>📄</span> Export DOCX (Soon)
+                            <button class="btn btn-primary" id="downloadDocx">
+                                <span>📄</span> Export DOCX
                             </button>
                         </div>
                     </div>
@@ -716,6 +716,46 @@
                 a.download = 'one-pager.html';
                 a.click();
                 URL.revokeObjectURL(url);
+            }
+        });
+
+        document.getElementById('downloadDocx').addEventListener('click', async () => {
+            if (!currentResult) return;
+            
+            const btn = document.getElementById('downloadDocx');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span>⏳</span> Generating...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch('/export/docx', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        guide: currentResult.technical_guide,
+                        diagram: currentResult.mermaid_diagram
+                    })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Export failed');
+                }
+                
+                // Get the blob and trigger download (same as HTML export)
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'DevOpsy-Documentation.docx';
+                a.click();
+                URL.revokeObjectURL(url);
+                
+            } catch (error) {
+                alert('DOCX export failed: ' + error.message);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
             }
         });
 

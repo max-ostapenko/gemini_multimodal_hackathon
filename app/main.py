@@ -8,7 +8,7 @@ from typing import Optional
 import uvicorn
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
@@ -233,6 +233,48 @@ async def preview_html(html_content: str):
     # This is a simple endpoint to preview HTML
     # In production, you'd serve from Firebase Storage
     return HTMLResponse(content=html_content)
+
+
+@app.post("/export/docx")
+async def export_to_docx(data: dict):
+    """
+    Export the generated content to a DOCX file.
+    
+    Generates the DOCX on-demand and returns it as a direct download.
+    Works just like the HTML download - saves to user's Downloads folder.
+    """
+    try:
+        # Lazy import to avoid startup issues
+        from app.services.docx_exporter import generate_docx
+        
+        guide = data.get('guide', {})
+        diagram = data.get('diagram', {})
+        
+        # Generate DOCX bytes
+        docx_bytes = generate_docx(guide, diagram)
+        
+        # Return as downloadable file
+        filename = f"DevOpsy-{guide.get('title', 'Documentation')[:30]}.docx"
+        # Clean filename
+        filename = "".join(c if c.isalnum() or c in " -_." else "" for c in filename)
+        
+        return Response(
+            content=docx_bytes,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            }
+        )
+    except ImportError as e:
+        raise HTTPException(
+            status_code=500,
+            detail="DOCX export not available. Please install python-docx: pip install python-docx"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"DOCX export failed: {str(e)}"
+        )
 
 
 if __name__ == "__main__":
