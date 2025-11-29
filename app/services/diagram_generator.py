@@ -36,11 +36,19 @@ NODE IDs:
 - CORRECT: API_Gateway, User_Service, Redis_Cache
 - WRONG: API Gateway, User Service (NO SPACES!)
 
+NODE LABELS WITH SPECIAL CHARACTERS (CRITICAL!):
+- If label contains parentheses (), use DOUBLE QUOTES inside brackets
+- CORRECT: MyNode["Label with (parentheses)"]
+- WRONG: MyNode[Label with (parentheses)]  <-- THIS BREAKS!
+- CORRECT: DB["PostgreSQL (Primary)"]
+- CORRECT: Cache["Redis (Cluster)"]
+- CORRECT: User["User Device (Web/Mobile)"]
+
 NODE SHAPES:
-- Rectangle: [Label]
+- Rectangle: [Label] or ["Label with special chars"]
 - Rounded: (Label)
 - Stadium: ([Label])
-- Database: [(Label)]
+- Database: [(Label)] or [("Label with special")]
 - Circle: ((Label))
 - Diamond: {Label}
 
@@ -58,17 +66,17 @@ EXAMPLE OF CORRECT FLOWCHART:
 ```
 flowchart TD
     subgraph Client
-        User[User Browser]
+        User["User Browser (Desktop/Mobile)"]
     end
     subgraph Backend
         API[API Server]
-        DB[(PostgreSQL)]
+        DB[("PostgreSQL (Primary)")]
     end
     User -->|HTTP Request| API
     API -->|SQL Query| DB
 ```
 
-IMPORTANT: Generate valid Mermaid syntax. Test mentally before outputting.
+IMPORTANT: ANY label with parentheses MUST use double quotes! Generate valid Mermaid syntax.
 """
 
 DIAGRAM_PROMPT_TEMPLATE = """Look at this rough sketch/notes and create a PROFESSIONAL architecture diagram.

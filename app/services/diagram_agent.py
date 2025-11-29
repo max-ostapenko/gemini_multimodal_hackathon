@@ -43,6 +43,10 @@ class MermaidSyntaxChecker:
     
     # Pattern for sequence diagram
     SEQUENCE_PATTERN = re.compile(r'^sequenceDiagram', re.MULTILINE)
+    
+    # Pattern for unquoted labels with parentheses (CRITICAL BUG SOURCE)
+    # Matches: NodeId[Label with (parentheses)] but NOT NodeId["Label with (parentheses)"]
+    UNQUOTED_PARENS_PATTERN = re.compile(r'(\w+)\[([^\]"]*\([^\]]*\)[^\]"]*)\]')
 
     def validate(self, code: str) -> ValidationResult:
         """
@@ -76,6 +80,17 @@ class MermaidSyntaxChecker:
                 error_type=MermaidErrorType.MISSING_DECLARATION,
                 suggestion="Start with 'flowchart TD', 'sequenceDiagram', 'classDiagram', etc."
             )
+        
+        # Check for unquoted parentheses in labels (CRITICAL - causes parse errors)
+        if has_flowchart:
+            unquoted_parens = self.UNQUOTED_PARENS_PATTERN.findall(code)
+            if unquoted_parens:
+                return ValidationResult(
+                    is_valid=False,
+                    error_message=f"Unquoted parentheses in label: '{unquoted_parens[0][0]}[{unquoted_parens[0][1]}]'",
+                    error_type=MermaidErrorType.QUOTE_ERROR,
+                    suggestion='Labels with parentheses need quotes: NodeId["Label (with parens)"]'
+                )
         
         # Check for wrong edge label syntax in flowcharts (A --> B: label)
         if has_flowchart:
@@ -261,8 +276,12 @@ class MermaidSyntaxChecker:
                 "- ==> : thick arrow"
             ),
             MermaidErrorType.QUOTE_ERROR: (
-                "Labels with special characters need quotes:\n"
-                'A["Label with (special) chars"]'
+                "CRITICAL: Labels with parentheses MUST have double quotes!\n"
+                "WRONG: Node[Label (info)]  <-- This breaks!\n"
+                'CORRECT: Node["Label (info)"]\n'
+                'WRONG: DB[(Database (Primary))]\n'
+                'CORRECT: DB[("Database (Primary)")]\n'
+                "Add double quotes around ANY label containing ( or )"
             ),
             MermaidErrorType.UNKNOWN: (
                 "Check Mermaid syntax documentation. Common issues:\n"
@@ -292,7 +311,15 @@ CRITICAL MERMAID SYNTAX RULES:
 - FLOWCHART edge labels: A -->|label text| B (NEVER use A --> B: label)
 - SEQUENCE diagram messages: A->>B: message text (colon syntax is OK here)
 - Node IDs: No spaces (use underscores: My_Node not My Node)
-- Special chars in labels: Use quotes ["Label with : special"]
+
+LABELS WITH PARENTHESES (VERY IMPORTANT!):
+- ANY label containing parentheses MUST be in double quotes
+- WRONG: Node[Label (info)]  <-- BREAKS PARSER!
+- CORRECT: Node["Label (info)"]
+- WRONG: DB[(Database (Primary))]
+- CORRECT: DB[("Database (Primary)")]
+- This applies to ALL node shapes: [], [()], (()), etc.
+
 - Subgraphs: Must have matching 'end' for each 'subgraph'
 """
 
@@ -307,6 +334,53 @@ class DiagramFixerAgent:
         """Initialize the fixer agent."""
         self.gemini = gemini_service or GeminiService()
         self.checker = MermaidSyntaxChecker()
+
+    def auto_fix_common_issues(self, code: str) -> str:
+        """
+        Automatically fix common Mermaid syntax issues without LLM.
+        This is faster and more reliable for known patterns.
+        
+        Args:
+            code: Mermaid diagram code
+            
+        Returns:
+            Fixed code
+        """
+        fixed = code
+        
+        # Fix 1: Add quotes to labels with parentheses
+        # Pattern: NodeId[Label (with parens)] -> NodeId["Label (with parens)"]
+        # But skip already quoted: NodeId["Label (with parens)"]
+        def quote_parens_label(match):
+            node_id = match.group(1)
+            label = match.group(2)
+            # Don't double-quote
+            if label.startswith('"') and label.endswith('"'):
+                return match.group(0)
+            return f'{node_id}["{label}"]'
+        
+        # Fix square bracket labels with parentheses
+        fixed = re.sub(r'(\w+)\[([^\]"]*\([^\]]*\)[^\]"]*)\]', quote_parens_label, fixed)
+        
+        # Fix 2: Database shape with parentheses: [(Label (info))] -> [("Label (info)")]
+        def quote_db_parens_label(match):
+            label = match.group(1)
+            if label.startswith('"') and label.endswith('"'):
+                return match.group(0)
+            return f'[("{label}")]'
+        
+        fixed = re.sub(r'\[\(([^)]*\([^)]*\)[^)]*)\)\]', quote_db_parens_label, fixed)
+        
+        # Fix 3: Circle shape with parentheses: ((Label (info))) -> (("Label (info)"))
+        def quote_circle_parens_label(match):
+            label = match.group(1)
+            if label.startswith('"') and label.endswith('"'):
+                return match.group(0)
+            return f'(("{label}"))'
+        
+        fixed = re.sub(r'\(\(([^)]*\([^)]*\)[^)]*)\)\)', quote_circle_parens_label, fixed)
+        
+        return fixed
 
     async def fix(
         self,
@@ -325,6 +399,19 @@ class DiagramFixerAgent:
         Returns:
             Tuple of (fixed_code, is_valid, iterations_used)
         """
+        # Step 0: Try auto-fix first (fast, no LLM needed)
+        print("DiagramFixerAgent: Attempting auto-fix for common issues...")
+        auto_fixed = self.auto_fix_common_issues(broken_code)
+        
+        if auto_fixed != broken_code:
+            print("DiagramFixerAgent: Auto-fix applied changes")
+            validation = self.checker.validate(auto_fixed)
+            if validation.is_valid:
+                print("DiagramFixerAgent: Auto-fix successful!")
+                return auto_fixed, True, 0
+            # Continue with auto-fixed code as starting point
+            broken_code = auto_fixed
+        
         current_code = broken_code
         
         # Identify error type if not provided
