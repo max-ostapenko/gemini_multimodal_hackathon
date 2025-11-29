@@ -14,7 +14,7 @@ class Settings(BaseSettings):
 
     # Google AI / Gemini
     google_api_key: str = os.getenv("GOOGLE_API_KEY", "")
-    gemini_model: str = "gemini-2.0-flash"
+    gemini_model: str = "gemini-2.5-flash"
 
     # Local output directory
     output_dir: str = os.getenv("OUTPUT_DIR", "./output")

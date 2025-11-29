@@ -48,7 +48,7 @@
 
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│   Your Napkin   │────▶│  Gemini 2.0 AI   │────▶│  Professional   │
+│   Your Napkin   │────▶│  Gemini 3.0 AI   │────▶│  Professional   │
 │    Sketch 📝    │     │  (Multimodal)    │     │  Documentation  │
 └─────────────────┘     └──────────────────┘     └─────────────────┘
                                │
@@ -62,7 +62,7 @@
 
 **Tech Stack:**
 - **Backend**: FastAPI + Python 3.11+
-- **AI Engine**: Google Gemini 2.0 Flash (Multimodal)
+- **AI Engine**: Google Gemini 3.0 Flash (Multimodal)
 - **Diagram Rendering**: Mermaid.js + mermaid-py
 - **Agentic Features**: Self-correcting diagram validation with RAG
 
@@ -144,7 +144,7 @@ app/
 
 ## 🤖 How the AI Works
 
-1. **Vision + Understanding**: Gemini 2.0 analyzes your sketch multimodally
+1. **Vision + Understanding**: Gemini 3.0 analyzes your sketch multimodally
 2. **Architect Mode**: AI enhances design with missing components (caches, queues, monitoring)
 3. **Diagram Generation**: Creates Mermaid flowchart with proper syntax
 4. **Agentic Validation**: Self-correcting agent fixes any syntax errors
