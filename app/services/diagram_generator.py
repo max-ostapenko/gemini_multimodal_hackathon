@@ -4,8 +4,9 @@ from app.models.schemas import MermaidDiagram
 from app.services.gemini import GeminiService
 from app.services.mermaid_renderer import MermaidRenderer
 from app.services.diagram_agent import DiagramFixerAgent, MermaidSyntaxChecker
+from app.services.mermaid_example import WORKING_EXAMPLE, SYNTAX_RULES_SUMMARY
 
-DIAGRAM_SYSTEM_INSTRUCTION = """You are a senior software architect who creates professional system design diagrams.
+DIAGRAM_SYSTEM_INSTRUCTION = f"""You are a senior software architect who creates professional system design diagrams.
 
 CRITICAL: Do NOT simply recreate what you see in the user's sketch. Their diagram is likely incomplete, 
 poorly structured, or missing critical components. Your job is to CREATE A BETTER DIAGRAM that represents
@@ -62,21 +63,13 @@ ARROWS:
 - -.-> : dotted arrow
 - ==> : thick arrow
 
-EXAMPLE OF CORRECT FLOWCHART:
-```
-flowchart TD
-    subgraph Client
-        User["User Browser (Desktop/Mobile)"]
-    end
-    subgraph Backend
-        API[API Server]
-        DB[("PostgreSQL (Primary)")]
-    end
-    User -->|HTTP Request| API
-    API -->|SQL Query| DB
-```
+=== FULL WORKING EXAMPLE (STUDY THIS CAREFULLY!) ===
+{WORKING_EXAMPLE}
+=== END EXAMPLE ===
 
-IMPORTANT: ANY label with parentheses MUST use double quotes! Generate valid Mermaid syntax.
+{SYNTAX_RULES_SUMMARY}
+
+IMPORTANT: Your output MUST follow the exact same syntax patterns as the working example above!
 """
 
 DIAGRAM_PROMPT_TEMPLATE = """Look at this rough sketch/notes and create a PROFESSIONAL architecture diagram.

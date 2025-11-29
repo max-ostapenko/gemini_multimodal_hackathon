@@ -8,6 +8,7 @@ from typing import Optional
 
 from app.models.schemas import MermaidDiagram
 from app.services.gemini import GeminiService
+from app.services.mermaid_example import WORKING_EXAMPLE, SYNTAX_RULES_SUMMARY
 
 
 class MermaidErrorType(Enum):
@@ -302,7 +303,7 @@ class MermaidSyntaxChecker:
 
 
 # System instruction for the fixer agent - focused ONLY on fixing
-FIXER_SYSTEM_INSTRUCTION = """You are a Mermaid diagram syntax fixer. Your ONLY job is to fix syntax errors in Mermaid diagrams.
+FIXER_SYSTEM_INSTRUCTION = f"""You are a Mermaid diagram syntax fixer. Your ONLY job is to fix syntax errors in Mermaid diagrams.
 
 You will receive:
 1. Broken Mermaid code
@@ -314,21 +315,15 @@ RULES:
 2. Preserve the original structure and meaning
 3. Return ONLY the fixed Mermaid code - no explanations, no markdown code blocks
 4. Apply the specific fix suggested
+5. USE THE WORKING EXAMPLE BELOW AS YOUR REFERENCE FOR CORRECT SYNTAX
 
-CRITICAL MERMAID SYNTAX RULES:
-- FLOWCHART edge labels: A -->|label text| B (NEVER use A --> B: label)
-- SEQUENCE diagram messages: A->>B: message text (colon syntax is OK here)
-- Node IDs: No spaces (use underscores: My_Node not My Node)
+=== WORKING EXAMPLE (CORRECT SYNTAX) ===
+{WORKING_EXAMPLE}
+=== END EXAMPLE ===
 
-LABELS WITH PARENTHESES (VERY IMPORTANT!):
-- ANY label containing parentheses MUST be in double quotes
-- WRONG: Node[Label (info)]  <-- BREAKS PARSER!
-- CORRECT: Node["Label (info)"]
-- WRONG: DB[(Database (Primary))]
-- CORRECT: DB[("Database (Primary)")]
-- This applies to ALL node shapes: [], [()], (()), etc.
+{SYNTAX_RULES_SUMMARY}
 
-- Subgraphs: Must have matching 'end' for each 'subgraph'
+IMPORTANT: Study the working example above carefully. Your output must follow the same patterns!
 """
 
 
@@ -471,13 +466,18 @@ class DiagramFixerAgent:
 
     def _build_fix_prompt(self, code: str, error_message: str, fix_hint: str) -> str:
         """Build a focused prompt for fixing the diagram."""
-        return f"""Fix this broken Mermaid diagram.
+        return f"""Fix this broken Mermaid diagram. Use the WORKING EXAMPLE in your system instructions as reference!
 
 ERROR MESSAGE:
 {error_message}
 
 HOW TO FIX:
 {fix_hint}
+
+REMEMBER KEY PATTERNS FROM THE WORKING EXAMPLE:
+- Subgraph with spaces: subgraph Auth_Service["Auth Service"]
+- Labels with parentheses: User["User Device (Web/Mobile)"]
+- Edge labels: A -->|label text| B
 
 BROKEN CODE:
 {code}
