@@ -10,11 +10,26 @@
 
 ## 💡 The Pitch
 
+<table>
+<tr>
+<td width="60%">
+
 **Ever scribbled a brilliant idea on a napkin during lunch?** We've all been there. That sketch contains a million-dollar idea, but turning it into proper documentation? That's where dreams go to die.
 
 **DevOpsy changes everything.** Snap a photo of your napkin, whiteboard, or back-of-envelope sketch. Our AI doesn't just transcribe—it *thinks like a senior architect*. It adds the load balancers you forgot, suggests the caching layer you need, identifies security gaps, and generates production-ready Mermaid diagrams with proper data flows.
 
-**From napkin to "deployment-docs" in 30 seconds!!!.** That's DevOpsy.
+**From napkin to "deployment-docs" in 30 seconds!!!** That's DevOpsy.
+
+</td>
+<td width="40%">
+
+<img src="assets/devopsy-meme.png" alt="Will develop system architecture for food" width="300"/>
+
+*Don't be this guy. Use DevOpsy.* 😅
+
+</td>
+</tr>
+</table>
 
 ---
 
