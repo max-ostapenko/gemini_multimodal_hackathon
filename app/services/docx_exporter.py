@@ -1,0 +1,176 @@
+"""DOCX document export service."""
+
+import os
+from datetime import datetime
+from pathlib import Path
+
+from docx import Document
+from docx.shared import Inches, Pt, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.style import WD_STYLE_TYPE
+
+from app.config import get_settings
+from app.models.schemas import TechnicalGuide, MermaidDiagram
+
+
+class DocxExporter:
+    """Service for exporting technical documentation to DOCX format."""
+
+    def __init__(self):
+        """Initialize the exporter."""
+        settings = get_settings()
+        self.output_dir = Path(settings.output_dir)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+
+    def export(
+        self,
+        guide: TechnicalGuide,
+        diagram: MermaidDiagram,
+        filename: str | None = None,
+    ) -> Path:
+        """
+        Export technical guide and diagram to a DOCX file.
+
+        Args:
+            guide: The technical guide data
+            diagram: The Mermaid diagram data
+            filename: Optional custom filename (without extension)
+
+        Returns:
+            Path to the generated DOCX file
+        """
+        doc = Document()
+        
+        # Set up styles
+        self._setup_styles(doc)
+        
+        # Title
+        title = doc.add_heading(guide.title, level=0)
+        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        
+        # Subtitle
+        subtitle = doc.add_paragraph(guide.subtitle)
+        subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        subtitle_run = subtitle.runs[0]
+        subtitle_run.italic = True
+        subtitle_run.font.size = Pt(14)
+        subtitle_run.font.color.rgb = RGBColor(100, 100, 100)
+        
+        # Add spacing
+        doc.add_paragraph()
+        
+        # Executive Summary box
+        doc.add_heading("Executive Summary", level=1)
+        summary_para = doc.add_paragraph(guide.executive_summary)
+        summary_para.paragraph_format.left_indent = Inches(0.25)
+        summary_para.paragraph_format.right_indent = Inches(0.25)
+        
+        # Problem Statement
+        doc.add_heading("Problem Statement", level=1)
+        doc.add_paragraph(guide.problem_statement)
+        
+        # Target Audience
+        doc.add_heading("Target Audience", level=1)
+        doc.add_paragraph(guide.target_audience)
+        
+        # Key Concepts
+        if guide.key_concepts:
+            doc.add_heading("Key Concepts", level=1)
+            for concept in guide.key_concepts:
+                # Concept name as bold
+                concept_para = doc.add_paragraph()
+                concept_name = concept_para.add_run(f"{concept.name}: ")
+                concept_name.bold = True
+                concept_para.add_run(concept.description)
+                
+                # Importance in italics
+                importance_para = doc.add_paragraph()
+                importance_para.paragraph_format.left_indent = Inches(0.5)
+                imp_run = importance_para.add_run(f"Importance: {concept.importance}")
+                imp_run.italic = True
+                imp_run.font.size = Pt(10)
+        
+        # Detailed Sections
+        if guide.sections:
+            for section in guide.sections:
+                doc.add_heading(section.title, level=1)
+                doc.add_paragraph(section.content)
+                
+                if section.key_points:
+                    doc.add_paragraph("Key Points:", style='Intense Quote')
+                    for point in section.key_points:
+                        doc.add_paragraph(point, style='List Bullet')
+        
+        # Architecture Diagram Section
+        doc.add_heading("Architecture Diagram", level=1)
+        doc.add_paragraph(f"Diagram Type: {diagram.diagram_type}")
+        doc.add_paragraph(diagram.description)
+        
+        # Add Mermaid code in a code block style
+        doc.add_paragraph("Mermaid Code:", style='Intense Quote')
+        code_para = doc.add_paragraph()
+        code_run = code_para.add_run(diagram.mermaid_code)
+        code_run.font.name = 'Consolas'
+        code_run.font.size = Pt(9)
+        code_para.paragraph_format.left_indent = Inches(0.25)
+        
+        # Technologies
+        if guide.technologies:
+            doc.add_heading("Technologies", level=1)
+            tech_para = doc.add_paragraph()
+            tech_para.add_run(", ".join(guide.technologies))
+        
+        # Use Cases
+        if guide.use_cases:
+            doc.add_heading("Use Cases", level=1)
+            for use_case in guide.use_cases:
+                doc.add_paragraph(use_case, style='List Bullet')
+        
+        # Next Steps
+        if guide.next_steps:
+            doc.add_heading("Next Steps", level=1)
+            for i, step in enumerate(guide.next_steps, 1):
+                doc.add_paragraph(f"{i}. {step}")
+        
+        # Footer
+        doc.add_paragraph()
+        footer = doc.add_paragraph()
+        footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        footer_run = footer.add_run(f"Generated by DevOpsy | {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+        footer_run.font.size = Pt(9)
+        footer_run.font.color.rgb = RGBColor(128, 128, 128)
+        
+        # Generate filename
+        if not filename:
+            safe_title = "".join(c if c.isalnum() or c in " -_" else "" for c in guide.title)
+            safe_title = safe_title.replace(" ", "_")[:50]
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"DevOpsy_{safe_title}_{timestamp}"
+        
+        # Save file
+        output_path = self.output_dir / f"{filename}.docx"
+        doc.save(str(output_path))
+        
+        return output_path
+
+    def _setup_styles(self, doc: Document):
+        """Set up custom styles for the document."""
+        # Modify heading styles
+        styles = doc.styles
+        
+        # Title style
+        title_style = styles['Title']
+        title_style.font.size = Pt(28)
+        title_style.font.bold = True
+        title_style.font.color.rgb = RGBColor(25, 118, 210)  # Blue
+        
+        # Heading 1
+        h1_style = styles['Heading 1']
+        h1_style.font.size = Pt(16)
+        h1_style.font.color.rgb = RGBColor(25, 118, 210)
+        
+        # Heading 2
+        h2_style = styles['Heading 2']
+        h2_style.font.size = Pt(14)
+        h2_style.font.color.rgb = RGBColor(66, 66, 66)
+
