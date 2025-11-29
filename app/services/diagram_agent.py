@@ -174,8 +174,7 @@ class MermaidSyntaxChecker:
         return ValidationResult(is_valid=True)
 
     def _check_node_ids(self, code: str) -> ValidationResult:
-        """Check for invalid node IDs (spaces, special characters in wrong places)."""
-        # Pattern to find node definitions - simplified check
+        """Check for invalid node IDs (spaces in node IDs, not in labels)."""
         lines = code.split('\n')
         for i, line in enumerate(lines):
             # Skip comments and empty lines
@@ -183,17 +182,26 @@ class MermaidSyntaxChecker:
             if not line or line.startswith('%%'):
                 continue
             
-            # Check for common invalid patterns
-            # Node IDs with spaces before brackets
-            if re.search(r'\b\w+\s+\w+\s*[\[\(\{]', line):
-                # But allow "subgraph Name" pattern
-                if not line.strip().startswith('subgraph'):
-                    return ValidationResult(
-                        is_valid=False,
-                        error_message=f"Possible invalid node ID with space on line {i+1}: '{line[:50]}...'",
-                        error_type=MermaidErrorType.INVALID_NODE_ID,
-                        suggestion="Use underscores instead of spaces in node IDs: My_Node instead of My Node"
-                    )
+            # Skip lines that are just arrows/connections or subgraph declarations
+            if line.startswith('subgraph') or line.startswith('end') or '-->' in line or '---' in line:
+                continue
+            
+            # Look for node definitions: NodeId[label] or NodeId["label"] etc.
+            # Invalid: "My Node[label]" - space in node ID
+            # Valid: "MyNode[My Label]" - space in label is fine
+            # Valid: MyNode["Label (with parens)"] - quoted label is fine
+            
+            # Pattern: word, space, word, then bracket WITHOUT a quote before the space
+            # This catches: My Node[...] but not MyNode["My Label"]
+            node_def_match = re.match(r'^(\w+)\s+(\w+)\s*[\[\(\{]', line)
+            if node_def_match:
+                # This looks like "Word1 Word2[" which is invalid node ID
+                return ValidationResult(
+                    is_valid=False,
+                    error_message=f"Invalid node ID with space on line {i+1}: '{node_def_match.group(0)}'",
+                    error_type=MermaidErrorType.INVALID_NODE_ID,
+                    suggestion="Use underscores instead of spaces in node IDs: My_Node instead of My Node"
+                )
         
         return ValidationResult(is_valid=True)
 
