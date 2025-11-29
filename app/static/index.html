@@ -475,9 +475,6 @@
                             <button class="btn btn-secondary" id="downloadHtml">
                                 <span>💾</span> Download HTML
                             </button>
-                            <button class="btn btn-primary" id="downloadDocx">
-                                <span>📄</span> Download DOCX
-                            </button>
                         </div>
                     </div>
 
@@ -716,37 +713,6 @@
                 a.download = 'one-pager.html';
                 a.click();
                 URL.revokeObjectURL(url);
-            }
-        });
-
-        document.getElementById('downloadDocx').addEventListener('click', async () => {
-            if (currentResult) {
-                try {
-                    const response = await fetch('/export/docx', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            guide: currentResult.technical_guide,
-                            diagram: currentResult.mermaid_diagram
-                        })
-                    });
-
-                    if (!response.ok) {
-                        throw new Error('DOCX export failed');
-                    }
-
-                    const blob = await response.blob();
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'DevOpsy-Documentation.docx';
-                    a.click();
-                    URL.revokeObjectURL(url);
-                } catch (error) {
-                    alert('Failed to export DOCX: ' + error.message);
-                }
             }
         });
 

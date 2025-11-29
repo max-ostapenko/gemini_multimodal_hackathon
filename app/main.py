@@ -8,7 +8,7 @@ from typing import Optional
 import uvicorn
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, FileResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
@@ -19,7 +19,6 @@ from app.models.schemas import (
     TechnicalGuide,
 )
 from app.services.diagram_generator import DiagramGenerator
-from app.services.docx_exporter import DocxExporter
 from app.services.gemini import GeminiService
 from app.services.guide_generator import GuideGenerator
 from app.services.mermaid_renderer import MermaidRenderer
@@ -31,13 +30,12 @@ guide_generator: Optional[GuideGenerator] = None
 diagram_generator: Optional[DiagramGenerator] = None
 onepager_generator: Optional[OnePagerGenerator] = None
 mermaid_renderer: Optional[MermaidRenderer] = None
-docx_exporter: Optional[DocxExporter] = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler."""
-    global gemini_service, guide_generator, diagram_generator, onepager_generator, mermaid_renderer, docx_exporter
+    global gemini_service, guide_generator, diagram_generator, onepager_generator, mermaid_renderer
 
     # Initialize services
     gemini_service = GeminiService()
@@ -45,7 +43,6 @@ async def lifespan(app: FastAPI):
     diagram_generator = DiagramGenerator(gemini_service)
     onepager_generator = OnePagerGenerator(gemini_service)
     mermaid_renderer = MermaidRenderer()
-    docx_exporter = DocxExporter()
 
     yield
 
@@ -236,36 +233,6 @@ async def preview_html(html_content: str):
     # This is a simple endpoint to preview HTML
     # In production, you'd serve from Firebase Storage
     return HTMLResponse(content=html_content)
-
-
-@app.post("/export/docx")
-async def export_docx(
-    guide: TechnicalGuide,
-    diagram: MermaidDiagram,
-):
-    """
-    Export the generated content to a DOCX file.
-
-    Args:
-        guide: The technical guide JSON
-        diagram: The Mermaid diagram JSON
-
-    Returns:
-        The generated DOCX file for download
-    """
-    try:
-        output_path = docx_exporter.export(guide=guide, diagram=diagram)
-        
-        return FileResponse(
-            path=str(output_path),
-            filename=output_path.name,
-            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"DOCX export failed: {str(e)}"
-        )
 
 
 if __name__ == "__main__":
