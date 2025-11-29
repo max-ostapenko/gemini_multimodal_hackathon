@@ -51,7 +51,7 @@ NODE SHAPES:
 - Stadium: ([Label])
 - Database: [(Label)] or [("Label with special")]
 - Circle: ((Label))
-- Diamond: {Label}
+- Diamond: {{Label}}
 
 SUBGRAPHS:
 - Must have matching 'end' for each 'subgraph'
