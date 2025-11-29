@@ -16,9 +16,8 @@ class Settings(BaseSettings):
     google_api_key: str = os.getenv("GOOGLE_API_KEY", "")
     gemini_model: str = "gemini-2.0-flash"
 
-    # Firebase
-    firebase_project_id: str = os.getenv("FIREBASE_PROJECT_ID", "")
-    firebase_storage_bucket: str = os.getenv("FIREBASE_STORAGE_BUCKET", "")
+    # Local output directory
+    output_dir: str = os.getenv("OUTPUT_DIR", "./output")
 
     # Server
     host: str = os.getenv("HOST", "0.0.0.0")

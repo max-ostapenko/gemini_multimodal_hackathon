@@ -13,9 +13,8 @@ Transform your napkin sketches and whiteboard diagrams into professional technic
 
 ## Architecture
 
-- **Backend**: Python with FastAPI
-- **AI/LLM**: Google Gemini 2.0 Flash (multimodal)
-- **Infrastructure**: Firebase (Storage, Firestore)
+- **Backend**: Python with FastAPI (local)
+- **AI/LLM**: Google Gemini 2.0 Flash (GCP API)
 - **Diagram Rendering**: mermaid-py for SVG generation
 
 ## Setup
@@ -23,28 +22,27 @@ Transform your napkin sketches and whiteboard diagrams into professional technic
 1. Clone the repository
 
 2. Create virtual environment:
+
 ```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
 3. Install dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
 
 4. Configure environment:
+
 ```bash
 cp .env.example .env
-# Edit .env with your API keys
+# Edit .env with your GOOGLE_API_KEY
 ```
 
-5. Set up Firebase:
-   - Create a Firebase project at https://console.firebase.google.com
-   - Enable Cloud Storage
-   - Download service account key (optional, for local development)
+5. Run the application:
 
-6. Run the application:
 ```bash
 python -m app.main
 # or
@@ -75,22 +73,19 @@ Health check endpoint.
 
 ## Project Structure
 
-```
+```text
 app/
 ├── main.py              # FastAPI application entry point
 ├── config.py            # Configuration management
+├── cli.py               # Command-line interface
 ├── services/
-│   ├── gemini.py        # Gemini LLM service
+│   ├── gemini.py             # Gemini LLM service
 │   ├── guide_generator.py    # Technical guide generation
 │   ├── diagram_generator.py  # Mermaid diagram generation
 │   ├── onepager_generator.py # HTML one-pager generation
 │   └── mermaid_renderer.py   # Mermaid to SVG/CSS
-├── models/
-│   └── schemas.py       # Pydantic models
-├── templates/
-│   └── onepager.html    # HTML template for one-pager
-└── firebase/
-    └── storage.py       # Firebase storage utilities
+└── models/
+    └── schemas.py       # Pydantic models
 ```
 
 ## License
