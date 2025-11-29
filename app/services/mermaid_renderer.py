@@ -13,6 +13,97 @@ class MermaidRenderer:
         """Initialize the renderer."""
         self._check_mermaid_cli()
 
+    def validate_syntax(self, mermaid_code: str) -> tuple[bool, str | None]:
+        """
+        Validate Mermaid diagram syntax.
+
+        Args:
+            mermaid_code: Mermaid diagram code to validate
+
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        # Try mermaid-py first
+        try:
+            from mermaid import Mermaid
+            from mermaid.graph import Graph
+
+            graph = Graph("validation", mermaid_code)
+            mermaid = Mermaid(graph)
+            # Try to access svg to trigger validation
+            _ = mermaid.svg
+            return True, None
+        except ImportError:
+            pass
+        except Exception as e:
+            return False, str(e)
+
+        # Fallback to mermaid-cli validation
+        if self._check_mermaid_cli():
+            try:
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    input_file = Path(tmpdir) / "diagram.mmd"
+                    output_file = Path(tmpdir) / "diagram.svg"
+
+                    input_file.write_text(mermaid_code)
+
+                    result = subprocess.run(
+                        ["mmdc", "-i", str(input_file), "-o", str(output_file)],
+                        capture_output=True,
+                        text=True,
+                        timeout=30,
+                    )
+
+                    if result.returncode == 0:
+                        return True, None
+                    else:
+                        error_msg = result.stderr or result.stdout or "Unknown mermaid syntax error"
+                        return False, error_msg
+            except Exception as e:
+                return False, str(e)
+
+        # If no validation tool available, do basic syntax check
+        return self._basic_syntax_check(mermaid_code)
+
+    def _basic_syntax_check(self, mermaid_code: str) -> tuple[bool, str | None]:
+        """Basic syntax validation when no mermaid tools available."""
+        code = mermaid_code.strip()
+
+        # Check for common diagram type declarations
+        valid_starts = [
+            "graph ", "graph\n",
+            "flowchart ", "flowchart\n",
+            "sequenceDiagram",
+            "classDiagram",
+            "stateDiagram",
+            "erDiagram",
+            "journey",
+            "gantt",
+            "pie",
+            "gitGraph",
+            "mindmap",
+            "timeline",
+        ]
+
+        has_valid_start = any(code.startswith(start) for start in valid_starts)
+        if not has_valid_start:
+            return False, f"Diagram must start with a valid type declaration (e.g., 'flowchart TD', 'sequenceDiagram', etc.). Got: {code[:50]}..."
+
+        # Check for balanced brackets
+        brackets = {'[': ']', '{': '}', '(': ')'}
+        stack = []
+        for char in code:
+            if char in brackets:
+                stack.append(brackets[char])
+            elif char in brackets.values():
+                if not stack or stack.pop() != char:
+                    return False, f"Unbalanced brackets in diagram"
+
+        if stack:
+            return False, f"Unclosed brackets in diagram"
+
+        return True, None
+
     def _check_mermaid_cli(self) -> bool:
         """Check if mermaid-cli (mmdc) is available."""
         try:
