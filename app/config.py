@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     output_dir: str = os.getenv("OUTPUT_DIR", "./output")
 
     # Server
-    host: str = os.getenv("HOST", "0.0.0.0")
+    host: str = os.getenv("HOST", "127.0.0.1")
     port: int = int(os.getenv("PORT", "8000"))
     debug: bool = os.getenv("DEBUG", "false").lower() == "true"
 

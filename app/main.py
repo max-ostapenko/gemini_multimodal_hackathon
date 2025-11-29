@@ -77,7 +77,7 @@ async def root():
     """Serve the web UI."""
     static_dir = Path(__file__).parent / "static"
     index_file = static_dir / "index.html"
-    return HTMLResponse(content=index_file.read_text())
+    return HTMLResponse(content=index_file.read_text(encoding="utf-8"))
 
 
 @app.post("/generate", response_model=GenerationResponse)

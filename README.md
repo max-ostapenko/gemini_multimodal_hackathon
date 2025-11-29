@@ -46,8 +46,10 @@ cp .env.example .env
 ```bash
 python -m app.main
 # or
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload --host 127.0.0.1
 ```
+
+6. Open http://127.0.0.1:8000 in your browser
 
 ## API Endpoints
 
