@@ -50,8 +50,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Technical Notes to One-Pager",
-    description="Transform napkin sketches and whiteboard diagrams into professional technical documentation",
+    title="DevOpsy - Your Virtual DevOps Engineer",
+    description="Transform napkin sketches and whiteboard diagrams into professional technical documentation for engineers!",
     version="1.0.0",
     lifespan=lifespan,
 )
