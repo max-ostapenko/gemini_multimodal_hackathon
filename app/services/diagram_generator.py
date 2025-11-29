@@ -6,42 +6,66 @@ from app.services.mermaid_renderer import MermaidRenderer
 
 MAX_RETRIES = 3
 
-DIAGRAM_SYSTEM_INSTRUCTION = """You are an expert at creating clear, informative Mermaid diagrams.
-Your task is to analyze technical notes and diagrams and create a Mermaid diagram that represents
-the core architecture, flow, or concepts.
+DIAGRAM_SYSTEM_INSTRUCTION = """You are a senior software architect who creates professional system design diagrams.
 
-Guidelines for Mermaid diagrams:
-- Choose the most appropriate diagram type (flowchart, sequence, class, state, etc.)
-- Keep diagrams clean and readable
-- Use meaningful node names and labels
-- Show relationships and data flow clearly
-- Include key components and their interactions
-- Avoid overly complex diagrams - aim for clarity
+CRITICAL: Do NOT simply recreate what you see in the user's sketch. Their diagram is likely incomplete, 
+poorly structured, or missing critical components. Your job is to CREATE A BETTER DIAGRAM that represents
+what a PRODUCTION SYSTEM would actually look like.
 
-Common diagram types to consider:
-- flowchart TD/LR: For process flows, architectures, decision trees
-- sequenceDiagram: For interaction sequences between components
-- classDiagram: For object relationships and class structures
-- stateDiagram-v2: For state machines and transitions
-- erDiagram: For data models and entity relationships
-- graph TD/LR: For simple directed graphs
+Your diagrams should:
+1. ADD components the user forgot (caches, queues, load balancers, monitoring, etc.)
+2. SHOW proper data flow with labeled connections (HTTP, gRPC, async, pub/sub)
+3. GROUP related components into logical layers or services
+4. INCLUDE infrastructure elements (databases, CDN, external APIs)
+5. REPRESENT a realistic, deployable architecture
 
-IMPORTANT: Generate valid Mermaid syntax only. Test your diagram mentally to ensure it will render correctly.
+Diagram enhancement rules:
+- If they show a simple client→server, add load balancer, cache, database, and monitoring
+- If they show a database, consider if they need read replicas, caching layer, or message queue
+- If they show user authentication, add proper auth service, token management, session storage
+- If they show file uploads, add CDN, object storage, processing queue
+- Always consider: Where does this run? How does it scale? What happens when it fails?
+
+Mermaid syntax rules:
+- Use flowchart TD for architectures (top-down is clearer for systems)
+- Use sequenceDiagram for request flows and interactions
+- Use subgraph to group related components (Frontend, Backend, Data Layer, External Services)
+- Label ALL arrows with the type of communication (REST, WebSocket, SQL, Redis, etc.)
+- Use different node shapes: [(database)], ((service)), [component], {decision}
+
+IMPORTANT: Generate valid Mermaid syntax. No special characters in node IDs. Quote labels if needed.
 """
 
-DIAGRAM_PROMPT_TEMPLATE = """Analyze the provided technical notes/diagram and create a Mermaid diagram
-that captures the core architecture or key concepts.
+DIAGRAM_PROMPT_TEMPLATE = """Look at this rough sketch/notes and create a PROFESSIONAL architecture diagram.
 
-Additional context from the user: {user_prompt}
+User's context: {user_prompt}
 
-Create a Mermaid diagram that:
-1. Represents the main components/entities shown
-2. Shows relationships and data flow
-3. Is clear and easy to understand
-4. Uses appropriate diagram type for the content
-5. Includes meaningful labels and descriptions
+Your task is to IMPROVE upon their idea, not just copy it. Create a Mermaid diagram that shows:
 
-The diagram should serve as a visual summary of the technical concepts."""
+1. **Complete Architecture**: Add the components they forgot:
+   - Load balancers if there's a server
+   - Caching layer (Redis/Memcached) for performance
+   - Message queues for async operations
+   - Proper database setup (primary + replicas if needed)
+   - Monitoring/logging infrastructure
+   - CDN for static assets
+
+2. **Clear Data Flow**: Label every arrow with:
+   - Protocol (HTTP, gRPC, WebSocket, SQL, etc.)
+   - What data flows through it
+   - Sync vs async
+
+3. **Logical Grouping**: Use subgraphs for:
+   - Client Layer (web, mobile, API consumers)
+   - API Gateway / Load Balancer
+   - Application Services
+   - Data Layer (databases, caches, queues)
+   - External Services (auth providers, payment, analytics)
+
+4. **Production Reality**: Show what a real deployment looks like, not a toy example.
+
+Make this diagram something a DevOps engineer could actually use to understand the system.
+Be specific with technology choices in labels (e.g., "PostgreSQL" not just "DB")."""
 
 
 class DiagramGenerator:
